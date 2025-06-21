@@ -1,3 +1,11 @@
+## Unreleased build
+
+Allow passing `persist(key: ...)`
+
+## 3.0.0-dev.16 - 2025-06-20
+
+Reworked Mutations to be independent from code-generation
+
 ## 3.0.0-dev.15 - 2025-05-04
 
 - `riverpod` upgraded to `3.0.0-dev.15`

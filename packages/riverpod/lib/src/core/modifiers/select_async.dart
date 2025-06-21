@@ -1,11 +1,8 @@
 part of '../../framework.dart';
 
 /// An internal class for `ProviderBase.selectAsync`.
-final class _AsyncSelector<InputT, OutputT, OriginStateT, OriginValueT>
-    with
-        ProviderListenable<Future<OutputT>>,
-        ProviderListenableWithOrigin<Future<OutputT>, OriginStateT,
-            OriginValueT> {
+final class _AsyncSelector<InputT, OutputT>
+    implements ProviderListenable<Future<OutputT>> {
   /// An internal class for `ProviderBase.select`.
   _AsyncSelector({
     required this.provider,
@@ -14,12 +11,10 @@ final class _AsyncSelector<InputT, OutputT, OriginStateT, OriginValueT>
   });
 
   /// The provider that was selected
-  final ProviderListenableWithOrigin<AsyncValue<InputT>, OriginStateT,
-      OriginValueT> provider;
+  final ProviderListenable<AsyncValue<InputT>> provider;
 
   /// The future associated to the listened provider
-  final ProviderListenableWithOrigin<Future<InputT>, OriginStateT, OriginValueT>
-      future;
+  final ProviderListenable<Future<InputT>> future;
 
   /// The selector applied
   final OutputT Function(InputT) selector;
@@ -37,17 +32,15 @@ final class _AsyncSelector<InputT, OutputT, OriginStateT, OriginValueT>
   }
 
   @override
-  ProviderSubscriptionWithOrigin<Future<OutputT>, OriginStateT, OriginValueT>
-      _addListener(
+  ProviderSubscriptionImpl<Future<OutputT>> _addListener(
     Node node,
     void Function(Future<OutputT>? previous, Future<OutputT> next) listener, {
     required void Function(Object error, StackTrace stackTrace) onError,
     required void Function()? onDependencyMayHaveChanged,
-    required bool fireImmediately,
     required bool weak,
   }) {
-    late final ProviderSubscriptionView<Future<OutputT>, OriginStateT,
-        OriginValueT> providerSub;
+    late final ExternalProviderSubscription<AsyncValue<InputT>, Future<OutputT>>
+        providerSub;
 
     $Result<OutputT>? lastSelectedValue;
     Completer<OutputT>? selectedCompleter;
@@ -151,24 +144,31 @@ final class _AsyncSelector<InputT, OutputT, OriginStateT, OriginValueT>
       weak: weak,
       onDependencyMayHaveChanged: onDependencyMayHaveChanged,
       onError: onError,
-      fireImmediately: false,
     );
 
-    playValue(sub.read(), callListeners: false);
+    playValue(
+      // ignore: unused_result, https://github.com/dart-lang/sdk/issues/60831
+      switch (sub.readSafe()) {
+        $ResultData<AsyncValue<InputT>>() && final d => d.value,
+        $ResultError<AsyncValue<InputT>>() && final d =>
+          AsyncError(d.error, d.stackTrace),
+      },
+      callListeners: false,
+    );
 
-    if (fireImmediately) {
-      listener(null, selectedFuture!);
-    }
-
-    return providerSub =
-        ProviderSubscriptionView<Future<OutputT>, OriginStateT, OriginValueT>(
+    return providerSub = ExternalProviderSubscription<AsyncValue<InputT>,
+        Future<OutputT>>.fromSub(
       innerSubscription: sub,
       listener: listener,
       onError: onError,
       read: () {
         // Flush
-        sub.read();
-        return selectedFuture!;
+        final result = sub.readSafe();
+        if (result case $ResultError(:final error, :final stackTrace)) {
+          return $Result.error(error, stackTrace);
+        }
+
+        return $ResultData(selectedFuture!);
       },
       onClose: () {
         final completer = selectedCompleter;
@@ -179,10 +179,10 @@ final class _AsyncSelector<InputT, OutputT, OriginStateT, OriginValueT>
             weak: weak,
             onDependencyMayHaveChanged: () {},
             onError: onError,
-            fireImmediately: false,
           );
 
-          sub.read().then((v) => _select(v).requireState).then(
+          // ignore: avoid_sub_read, We are handling errors
+          sub.read().then((v) => _select(v).valueOrProviderException).then(
             (value) {
               // Avoid possible race condition
               if (!completer.isCompleted) completer.complete(value);

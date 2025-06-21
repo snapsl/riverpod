@@ -5,7 +5,6 @@ export 'src/internals.dart'
         AsyncLoading,
         AsyncError,
         ProviderContainer,
-        MutationContext,
         ProviderObserverContext,
         ProviderObserver,
         ProviderSubscription,
@@ -22,4 +21,6 @@ export 'src/internals.dart'
         FamilyStreamNotifier,
         StreamNotifier,
         StreamNotifierProvider,
-        StreamProvider;
+        StreamProvider,
+        ProviderListenableSelect,
+        AsyncResult;

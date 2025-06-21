@@ -36,7 +36,7 @@ part of '../core.dart';
 /// a [Ref] instead.
 /// {@endtemplate}
 /// {@category Core}
-abstract final class WidgetRef {
+sealed class WidgetRef implements MutationTarget {
   /// The [BuildContext] of the widget associated to this [WidgetRef].
   ///
   /// This is strictly identical to the [BuildContext] passed to [ConsumerWidget.build].
@@ -107,7 +107,7 @@ abstract final class WidgetRef {
   ///
   /// See also:
   ///
-  /// - [ProviderListenable.select], which allows a widget to filter rebuilds by
+  /// - [ProviderListenableSelect.select], which allows a widget to filter rebuilds by
   ///   observing only the selected properties.
   /// - [listen], to react to changes on a provider, such as for showing modals.
   T watch<T>(ProviderListenable<T> provider);

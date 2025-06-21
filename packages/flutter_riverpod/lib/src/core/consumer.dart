@@ -373,7 +373,8 @@ base class ConsumerStatefulElement extends StatefulElement
   @override
   BuildContext get context => this;
 
-  late ProviderContainer _container = ProviderScope.containerOf(this);
+  @override
+  late ProviderContainer container = ProviderScope.containerOf(this);
   var _dependencies =
       <ProviderListenable<Object?>, ProviderSubscription<Object?>>{};
   Map<ProviderListenable<Object?>, ProviderSubscription<Object?>>?
@@ -398,8 +399,8 @@ base class ConsumerStatefulElement extends StatefulElement
   void didChangeDependencies() {
     super.didChangeDependencies();
     final newContainer = ProviderScope.containerOf(this);
-    if (_container != newContainer) {
-      _container = newContainer;
+    if (container != newContainer) {
+      container = newContainer;
       for (final dependency in _dependencies.values) {
         dependency.close();
       }
@@ -439,27 +440,34 @@ base class ConsumerStatefulElement extends StatefulElement
 
   void _assertNotDisposed() {
     if (!context.mounted) {
-      throw StateError('Cannot use "ref" after the widget was disposed.');
+      throw StateError(
+        'Using "ref" when a widget is about to or has been unmounted is unsafe.\n'
+        'Ref relies on BuildContext, and BuildContext is unsafe to use when the widget is deactivated.\n'
+        'To safely refer to the state of providers inside State.dispose(), save the provider state in a field of your State class.',
+      );
     }
   }
 
   @override
   Res watch<Res>(ProviderListenable<Res> target) {
     _assertNotDisposed();
-    return _dependencies.putIfAbsent(target, () {
-      final oldDependency = _oldDependencies?.remove(target);
+    return _dependencies
+        .putIfAbsent(target, () {
+          final oldDependency = _oldDependencies?.remove(target);
 
-      if (oldDependency != null) {
-        return oldDependency;
-      }
+          if (oldDependency != null) {
+            return oldDependency;
+          }
 
-      final sub = _container.listen<Res>(
-        target,
-        (_, __) => markNeedsBuild(),
-      );
-      _applyTickerMode(sub);
-      return sub;
-    }).read() as Res;
+          final sub = container.listen<Res>(
+            target,
+            (_, __) => markNeedsBuild(),
+          );
+          _applyTickerMode(sub);
+          return sub;
+        })
+        .readSafe()
+        .valueOrProviderException as Res;
   }
 
   @override
@@ -498,7 +506,7 @@ base class ConsumerStatefulElement extends StatefulElement
     // We can't implement a fireImmediately flag because we wouldn't know
     // which listen call was preserved between widget rebuild, and we wouldn't
     // want to call the listener on every rebuild.
-    final sub = _container.listen<T>(provider, listener, onError: onError);
+    final sub = container.listen<T>(provider, listener, onError: onError);
     _applyTickerMode(sub);
     _listeners.add(sub);
   }
@@ -527,7 +535,7 @@ base class ConsumerStatefulElement extends StatefulElement
     bool asReload = false,
   }) {
     _assertNotDisposed();
-    _container.invalidate(provider, asReload: asReload);
+    container.invalidate(provider, asReload: asReload);
   }
 
   @override
@@ -550,16 +558,16 @@ base class ConsumerStatefulElement extends StatefulElement
       onError: onError,
       fireImmediately: fireImmediately,
       // ignore: invalid_use_of_internal_member, from riverpod
-    ) as ProviderSubscriptionWithOrigin<ValueT, Object?, Object?>;
+    );
 
     // ignore: invalid_use_of_internal_member, from riverpod
-    late final ProviderSubscriptionView<ValueT, Object?, Object?> sub;
-    sub = ProviderSubscriptionView<ValueT, Object?, Object?>(
+    late final ExternalProviderSubscription<Object?, ValueT> sub;
+    sub = ExternalProviderSubscription<Object?, ValueT>.fromSub(
       innerSubscription: innerSubscription,
       listener: (prev, next) {},
       onError: (error, stackTrace) {},
       onClose: () => _manualListeners?.remove(sub),
-      read: innerSubscription.read,
+      read: innerSubscription.readSafe,
     );
     _applyTickerMode(sub);
     listeners.add(sub);

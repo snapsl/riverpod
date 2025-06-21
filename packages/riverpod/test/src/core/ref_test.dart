@@ -31,6 +31,24 @@ final refMethodsThatDependOnProviderOrFamilies =
 
 void main() {
   group('Ref', () {
+    test('can be used with mutations', () async {
+      final container = ProviderContainer.test();
+      final notifier = DeferredNotifier<int>((self, ref) => 0);
+      final provider = NotifierProvider<Notifier<int>, int>(() => notifier);
+      final mutation = Mutation<int>();
+
+      container.read(provider);
+      final sub = container.listen(mutation, (a, b) {});
+
+      await mutation.run(notifier.ref, (ref) async {
+        notifier.state++;
+
+        return notifier.state;
+      });
+
+      expect(sub.read(), isMutationSuccess<int>(1));
+    });
+
     test('asserts that a lifecycle cannot be used after a ref is unmounted',
         () async {
       late Ref ref;
@@ -125,62 +143,62 @@ void main() {
 
       expect(
         () => container.read(provider.select((_) => ref.watch(another))),
-        throwsA(isA<AssertionError>()),
+        throwsProviderException(isA<AssertionError>()),
       );
       expect(
         () => container.read(provider.select((_) => ref.invalidateSelf())),
-        throwsA(isA<AssertionError>()),
+        throwsProviderException(isA<AssertionError>()),
       );
       expect(
         () => container.read(provider.select((_) => ref.invalidate(dep))),
-        throwsA(isA<AssertionError>()),
+        throwsProviderException(isA<AssertionError>()),
       );
       expect(
         () => container.read(provider.select((_) => ref.refresh(another))),
-        throwsA(isA<AssertionError>()),
+        throwsProviderException(isA<AssertionError>()),
       );
       expect(
         () => container.read(provider.select((_) => ref.read(another))),
-        throwsA(isA<AssertionError>()),
+        throwsProviderException(isA<AssertionError>()),
       );
       expect(
         () => container.read(provider.select((_) => ref.onDispose(() {}))),
-        throwsA(isA<AssertionError>()),
+        throwsProviderException(isA<AssertionError>()),
       );
       expect(
         () => container.read(provider.select((_) => ref.onAddListener(() {}))),
-        throwsA(isA<AssertionError>()),
+        throwsProviderException(isA<AssertionError>()),
       );
       expect(
         () => container.read(provider.select((_) => ref.onCancel(() {}))),
-        throwsA(isA<AssertionError>()),
+        throwsProviderException(isA<AssertionError>()),
       );
       expect(
         () =>
             container.read(provider.select((_) => ref.onRemoveListener(() {}))),
-        throwsA(isA<AssertionError>()),
+        throwsProviderException(isA<AssertionError>()),
       );
       expect(
         () => container.read(provider.select((_) => ref.onResume(() {}))),
-        throwsA(isA<AssertionError>()),
+        throwsProviderException(isA<AssertionError>()),
       );
       expect(
         () => container.read(provider.select((_) => ref.notifyListeners())),
-        throwsA(isA<AssertionError>()),
+        throwsProviderException(isA<AssertionError>()),
       );
       expect(
         () => container
             .read(provider.select((_) => ref.listen(another, (_, __) {}))),
-        throwsA(isA<AssertionError>()),
+        throwsProviderException(isA<AssertionError>()),
       );
       expect(
         () => container.read(provider.select((_) => ref.exists(another))),
-        throwsA(isA<AssertionError>()),
+        throwsProviderException(isA<AssertionError>()),
       );
 
       expect(
         () => container.read(provider.select((_) => ref.keepAlive())),
-        throwsA(isA<AssertionError>()),
+        throwsProviderException(isA<AssertionError>()),
       );
     });
 
@@ -1914,9 +1932,8 @@ void main() {
           observer.didAddProvider(
             argThat(
               isProviderObserverContext(
-                provider,
-                container,
-                notifier: notifier,
+                provider: provider,
+                container: container,
               ),
             ),
             0,
@@ -1934,9 +1951,8 @@ void main() {
           observer.didUpdateProvider(
             argThat(
               isProviderObserverContext(
-                provider,
-                container,
-                notifier: notifier,
+                provider: provider,
+                container: container,
               ),
             ),
             0,
@@ -1969,9 +1985,8 @@ void main() {
           observer.didAddProvider(
             argThat(
               isProviderObserverContext(
-                provider,
-                container,
-                notifier: notifier,
+                provider: provider,
+                container: container,
               ),
             ),
             0,
@@ -2011,9 +2026,8 @@ void main() {
           observer.didAddProvider(
             argThat(
               isProviderObserverContext(
-                provider,
-                container,
-                notifier: notifier,
+                provider: provider,
+                container: container,
               ),
             ),
             firstValue,
@@ -2033,9 +2047,8 @@ void main() {
           observer.didDisposeProvider(
             argThat(
               isProviderObserverContext(
-                provider,
-                container,
-                notifier: notifier,
+                provider: provider,
+                container: container,
               ),
             ),
           ),
@@ -2044,9 +2057,8 @@ void main() {
           observer.didUpdateProvider(
             argThat(
               isProviderObserverContext(
-                provider,
-                container,
-                notifier: notifier2,
+                provider: provider,
+                container: container,
               ),
             ),
             firstValue,

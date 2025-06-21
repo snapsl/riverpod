@@ -5,7 +5,6 @@ export 'src/internals.dart'
         AsyncLoading,
         AsyncError,
         ProviderContainer,
-        MutationContext,
         ProviderObserverContext,
         ProviderObserver,
         ProviderSubscription,
@@ -32,4 +31,7 @@ export 'src/internals.dart'
         AnyNotifier,
         HookConsumerWidget,
         HookConsumer,
-        StatefulHookConsumerWidget;
+        StatefulHookConsumerWidget,
+        RiverpodWidgetTesterX,
+        ProviderListenableSelect,
+        AsyncResult;

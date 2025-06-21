@@ -104,15 +104,16 @@ abstract class $notifierClass$genericsDefinition extends $baseClass {
   /// A variant of [persist], for JSON-specific encoding.
   ///
   /// You can override [key] to customize the key used for storage.
-  FutureOr<void> persist(
+  PersistResult persist(
     FutureOr<Storage<String, String>> storage, {
+    String? key,
     String Function(${provider.valueTypeDisplayString} state)? encode,
     ${provider.valueTypeDisplayString} Function(String encoded)? decode,
     StorageOptions options = const StorageOptions(),
   }) {
     return NotifierPersistX(this).persist<String, String>(
       storage,
-      key: key,
+      key: key ?? this.key,
       encode: encode ?? \$jsonCodex.encode,
       decode: decode ?? (encoded) {
         final e = \$jsonCodex.decode(encoded);

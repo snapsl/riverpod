@@ -175,7 +175,7 @@ In the scenario where you didn't use a `Notifier`, you can refactor your provide
 
 ## ProviderObserver has its interface slightly changed
 
-For the sake of [mutations](./whats_new.mdx#mutations-experimental-code-generation-only), 
+For the sake of [mutations](./whats_new.mdx#mutations), 
 the [ProviderObserver] interface has changed slightly.
 
 Instead of two separate parameters for [ProviderContainer] and [ProviderBase], 
@@ -200,13 +200,13 @@ For the sake of simplification, [Ref] lost its type parameter. And all propertie
 using the type parameter have been moved to [Notifier]s.  
 
 Specifically, `ProviderRef.state`, `Ref.listenSelf` and `FutureProviderRef.future` should be replaced by
-`Notifier.state`, `Notifier.listenSelf` and `FutureProviderRef.future` respectively.
+`Notifier.state`, `Notifier.listenSelf` and `AsyncNotifier.future` respectively.
 
 <AutoSnippet
   language="dart"
   codegen={`
   // Before:
-  @override
+  @riverpod
   Future<int> value(ValueRef ref) async {
     ref.listen(anotherProvider, (previous, next) {
       ref.state++;

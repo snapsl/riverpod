@@ -2,8 +2,7 @@ part of '../framework.dart';
 
 @reopen
 abstract base class _ValueProvider<StateT, ValueT>
-    extends $ProviderBaseImpl<StateT, ValueT>
-    with LegacyProviderMixin<StateT, ValueT> {
+    extends $ProviderBaseImpl<StateT> with LegacyProviderMixin<StateT> {
   /// Creates a [_ValueProvider].
   const _ValueProvider(this._value)
       : super(
@@ -61,7 +60,7 @@ final class $SyncValueProvider<ValueT> extends _ValueProvider<ValueT, ValueT> {
 
 /// The [ProviderElement] of a [_ValueProvider]
 abstract class _ValueProviderElement<StateT, ValueT>
-    extends ProviderElement<StateT, ValueT> {
+    extends ProviderElement<StateT, ValueT> with ElementWithFuture {
   /// The [ProviderElement] of a [_ValueProvider]
   _ValueProviderElement(this.provider, super.pointer);
 

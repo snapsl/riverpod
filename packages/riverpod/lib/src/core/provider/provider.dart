@@ -23,8 +23,10 @@ typedef OnError = void Function(Object error, StackTrace stackTrace);
 @immutable
 @publicInMisc
 sealed class ProviderBase<StateT> extends ProviderOrFamily
-    with ProviderListenable<StateT>
-    implements Refreshable<StateT>, _ProviderOverride {
+    implements
+        ProviderListenable<StateT>,
+        Refreshable<StateT>,
+        _ProviderOverride {
   /// A base class for _all_ providers.
   const ProviderBase({
     required super.name,
@@ -39,6 +41,8 @@ sealed class ProviderBase<StateT> extends ProviderOrFamily
           'When from a family, providers cannot specify dependencies.',
         );
 
+  bool get _isSynthetic => false;
+
   /// If this provider was created with the `.family` modifier, [from] is the `.family` instance.
   @override
   final Family? from;
@@ -52,7 +56,7 @@ sealed class ProviderBase<StateT> extends ProviderOrFamily
   /// An internal method that defines how a provider behaves.
   /// @nodoc
   @visibleForOverriding
-  ProviderElement<StateT, Object?> $createElement($ProviderPointer pointer);
+  ElementWithFuture<StateT, Object?> $createElement($ProviderPointer pointer);
 
   /// A debug-only function for obtaining a hash of the source code of the
   /// initialization function.
@@ -88,9 +92,7 @@ sealed class ProviderBase<StateT> extends ProviderOrFamily
 /// A base class for _all_ providers.
 @immutable
 @internal
-abstract final class $ProviderBaseImpl<StateT, ValueT>
-    extends ProviderBase<StateT>
-    with ProviderListenableWithOrigin<StateT, StateT, ValueT> {
+abstract final class $ProviderBaseImpl<StateT> extends ProviderBase<StateT> {
   /// A base class for _all_ providers.
   const $ProviderBaseImpl({
     required super.name,
@@ -103,33 +105,18 @@ abstract final class $ProviderBaseImpl<StateT, ValueT>
   });
 
   @override
-  ProviderSubscriptionWithOrigin<StateT, StateT, ValueT> _addListener(
+  ProviderProviderSubscription<StateT> _addListener(
     Node source,
     void Function(StateT? previous, StateT next) listener, {
     required void Function(Object error, StackTrace stackTrace) onError,
     required void Function()? onDependencyMayHaveChanged,
-    required bool fireImmediately,
     required bool weak,
   }) {
-    assert(
-      !fireImmediately || !weak,
-      'Cannot use fireImmediately with weak listeners',
-    );
-
     final element = source.readProviderElement(this);
 
     if (!weak) element.flush();
 
-    if (fireImmediately) {
-      _handleFireImmediately(
-        source.container,
-        element.stateResult()!,
-        listener: listener,
-        onError: onError,
-      );
-    }
-
-    return ProviderStateSubscription<StateT, ValueT>(
+    return ProviderProviderSubscription<StateT>(
       source: source,
       listenedElement: element,
       weak: weak,
@@ -140,13 +127,12 @@ abstract final class $ProviderBaseImpl<StateT, ValueT>
 
   @override
   @visibleForOverriding
-  ProviderElement<StateT, ValueT> $createElement($ProviderPointer pointer);
+  ElementWithFuture<StateT, Object?> $createElement($ProviderPointer pointer);
 }
 
 /// A mixin that implements some methods for non-generic providers.
 @internal
-base mixin LegacyProviderMixin<StateT, ValueT>
-    on $ProviderBaseImpl<StateT, ValueT> {
+base mixin LegacyProviderMixin<StateT> on $ProviderBaseImpl<StateT> {
   @override
   int get hashCode {
     if (from == null) return super.hashCode;
@@ -159,7 +145,7 @@ base mixin LegacyProviderMixin<StateT, ValueT>
     if (from == null) return identical(other, this);
 
     return other.runtimeType == runtimeType &&
-        other is $ProviderBaseImpl<StateT, ValueT> &&
+        other is $ProviderBaseImpl<StateT> &&
         other.from == from &&
         other.argument == argument;
   }

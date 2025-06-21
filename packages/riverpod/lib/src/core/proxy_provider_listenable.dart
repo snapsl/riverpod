@@ -2,58 +2,42 @@ part of '../framework.dart';
 
 @internal
 @publicInCodegen
-final class $LazyProxyListenable<OutT, OriginStateT, OriginValueT>
-    with
-        ProviderListenable<OutT>,
-        ProviderListenableWithOrigin<OutT, OriginStateT, OriginValueT> {
+final class $LazyProxyListenable<OutT, InT>
+    implements ProviderListenable<OutT> {
   $LazyProxyListenable(this.provider, this._lense);
 
-  final $ProviderBaseImpl<OriginStateT, OriginValueT> provider;
-  final $ElementLense<OutT> Function(
-    ProviderElement<OriginStateT, OriginValueT> element,
+  final $ProviderBaseImpl<InT> provider;
+  final $Observable<OutT> Function(
+    ProviderElement<InT, Object?> element,
   ) _lense;
 
   @override
-  ProviderSubscriptionWithOrigin<OutT, OriginStateT, OriginValueT> _addListener(
+  ProviderSubscriptionImpl<OutT> _addListener(
     Node source,
     void Function(OutT? previous, OutT next) listener, {
     required void Function(Object error, StackTrace stackTrace) onError,
     required void Function()? onDependencyMayHaveChanged,
-    required bool fireImmediately,
     required bool weak,
   }) {
     final element = source.readProviderElement(provider);
 
-    final listenable = _lense(element);
-    if (fireImmediately) {
-      switch (listenable.result) {
-        case null:
-          break;
-        case final $ResultData<OutT> data:
-          source.container.runBinaryGuarded(listener, null, data.value);
-        case final $ResultError<OutT> error:
-          source.container
-              .runBinaryGuarded(onError, error.error, error.stackTrace);
-      }
-    }
+    final innerSub = source.container.listen(provider, (a, b) {});
 
-    late final ProviderSubscriptionImpl<OutT, OriginStateT, OriginValueT> sub;
+    final listenable = _lense(element);
+
+    late final ProviderSubscriptionImpl<OutT> sub;
     final removeListener = listenable.addListener(
       (a, b) => sub._notifyData(a, b),
       onError: onError,
       onDependencyMayHaveChanged: onDependencyMayHaveChanged,
     );
 
-    return sub = DelegatingProviderSubscription<OutT, OriginStateT,
-        OriginStateT, OriginValueT>(
-      listenedElement: element,
-      source: source,
-      weak: weak,
-      origin: provider,
+    return sub = ExternalProviderSubscription<InT, OutT>.fromSub(
+      innerSubscription: innerSub,
       onClose: removeListener,
-      errorListener: onError,
+      onError: onError,
       listener: listener,
-      read: () => listenable.value,
+      read: () => listenable.requireResult,
     );
   }
 }
@@ -74,11 +58,8 @@ final class $LazyProxyListenable<OutT, OriginStateT, OriginValueT>
 ///
 /// This API is not meant for public consumption.
 @internal
-final class ProviderElementProxy<OutT, OriginStateT, OriginValueT>
-    with
-        ProviderListenable<OutT>,
-        ProviderListenableWithOrigin<OutT, OriginStateT, OriginValueT>,
-        _ProviderRefreshable<OutT, OriginStateT, OriginValueT> {
+final class ProviderElementProxy<OutT, InT>
+    with _ProviderRefreshable<OutT, InT> {
   /// An internal utility for reading alternate values of a provider.
   ///
   /// For example, this is used by [FutureProvider] to differentiate:
@@ -103,18 +84,17 @@ final class ProviderElementProxy<OutT, OriginStateT, OriginValueT>
   final bool flushElement;
 
   @override
-  final $ProviderBaseImpl<OriginStateT, OriginValueT> provider;
-  final $ElementLense<OutT> Function(
-    ProviderElement<OriginStateT, OriginValueT> element,
+  final $ProviderBaseImpl<InT> provider;
+  final $Observable<OutT> Function(
+    ProviderElement<InT, Object?> element,
   ) _lense;
 
   @override
-  ProviderSubscriptionWithOrigin<OutT, OriginStateT, OriginValueT> _addListener(
+  ProviderSubscriptionImpl<OutT> _addListener(
     Node source,
     void Function(OutT? previous, OutT next) listener, {
     required void Function(Object error, StackTrace stackTrace) onError,
     required void Function()? onDependencyMayHaveChanged,
-    required bool fireImmediately,
     required bool weak,
   }) {
     final element = source.readProviderElement(provider);
@@ -128,33 +108,21 @@ final class ProviderElementProxy<OutT, OriginStateT, OriginValueT>
     final innerSub = provider._addListener(
       source,
       (prev, next) {},
-      fireImmediately: false,
       weak: weak,
       onDependencyMayHaveChanged: onDependencyMayHaveChanged,
       onError: (err, stack) {},
     );
 
     final notifier = _lense(element);
-    if (fireImmediately) {
-      switch (notifier.result) {
-        case null:
-          break;
-        case final $ResultData<OutT> data:
-          source.container.runBinaryGuarded(listener, null, data.value);
-        case final $ResultError<OutT> error:
-          source.container
-              .runBinaryGuarded(onError, error.error, error.stackTrace);
-      }
-    }
 
-    late ProviderSubscriptionView<OutT, OriginStateT, OriginValueT> sub;
+    late ExternalProviderSubscription<InT, OutT> sub;
     final removeListener = notifier.addListener(
       (prev, next) => sub._notifyData(prev, next),
       onError: onError,
       onDependencyMayHaveChanged: onDependencyMayHaveChanged,
     );
 
-    return sub = ProviderSubscriptionView<OutT, OriginStateT, OriginValueT>(
+    return sub = ExternalProviderSubscription<InT, OutT>.fromSub(
       innerSubscription: innerSub,
       onClose: removeListener,
       listener: listener,
@@ -164,15 +132,14 @@ final class ProviderElementProxy<OutT, OriginStateT, OriginValueT>
         element.flush();
         element.mayNeedDispose();
 
-        return _lense(element).value;
+        return _lense(element).requireResult;
       },
     );
   }
 
   @override
   bool operator ==(Object other) =>
-      other is ProviderElementProxy<OutT, OriginStateT, OriginValueT> &&
-      other.provider == provider;
+      other is ProviderElementProxy<OutT, InT> && other.provider == provider;
 
   @override
   int get hashCode => provider.hashCode;

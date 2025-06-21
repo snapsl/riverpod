@@ -41,7 +41,7 @@ Cannot use the Ref of $origin after it has been disposed. This typically happens
 /// {@category Core}
 @optionalTypeArgs
 @publicInRiverpodAndCodegen
-sealed class Ref {
+sealed class Ref implements MutationTarget {
   Ref._({
     required this.isFirstBuild,
     required this.isReload,
@@ -114,6 +114,8 @@ sealed class Ref {
   bool get mounted => !_element._disposed;
 
   /// The [ProviderContainer] that this provider is associated with.
+  @changePrivacy
+  @override
   ProviderContainer get container => _element.container;
 
   void _debugAssertCanDependOn(ProviderListenableOrFamily listenable) {
@@ -606,7 +608,7 @@ final <yourProvider> = Provider(dependencies: [<dependency>]);
       onDependencyMayHaveChanged: _element._markDependencyMayHaveChanged,
     );
 
-    return sub.read();
+    return sub.readSafe().valueOrProviderException;
   }
 
   /// {@template riverpod.listen}
@@ -702,12 +704,7 @@ class $Ref<StateT, ValueT> extends Ref {
   StateT get state {
     _throwIfInvalidUsage();
 
-    try {
-      return _element.readSelf();
-    } catch (e, s) {
-      e as ProviderException;
-      e.unwrap(s);
-    }
+    return _element.readSelf().valueOrRawException;
   }
 
   set state(StateT newState) {
