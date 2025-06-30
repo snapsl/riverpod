@@ -15,14 +15,14 @@ import 'package:riverpod_generator/src/riverpod_generator.dart';
 import 'package:test/test.dart';
 
 @internal
-extension ObjectX<T> on T? {
-  R? cast<R>() {
+extension ObjectX<ValueT> on ValueT? {
+  NewT? cast<NewT>() {
     final that = this;
-    if (that is R) return that;
+    if (that is NewT) return that;
     return null;
   }
 
-  R? let<R>(R? Function(T value)? cb) {
+  NewT? let<NewT>(NewT? Function(ValueT value)? cb) {
     if (cb == null) return null;
     final that = this;
     if (that != null) return cb(that);
@@ -176,31 +176,31 @@ class _VisitNode extends GeneralizingAstVisitor<void> {
   void visitNode(AstNode node) => cb(node);
 }
 
-extension MapTake<Key, Value> on Map<Key, Value> {
-  Map<Key, Value> take(List<Key> keys) {
-    return <Key, Value>{
+extension MapTake<KeyT, ValueT> on Map<KeyT, ValueT> {
+  Map<KeyT, ValueT> take(List<KeyT> keys) {
+    return <KeyT, ValueT>{
       for (final key in keys)
         if (!containsKey(key))
           key: throw StateError('No key $key found')
         else
-          key: this[key] as Value,
+          key: this[key] as ValueT,
     };
   }
 }
 
-extension TakeList<T extends ProviderDeclaration> on List<T> {
-  Map<String, T> takeAll(List<String> names) {
+extension TakeList<ProviderT extends ProviderDeclaration> on List<ProviderT> {
+  Map<String, ProviderT> takeAll(List<String> names) {
     final result = Map.fromEntries(map((e) => MapEntry(e.name.lexeme, e)));
     return result.take(names);
   }
 
-  T findByName(String name) {
+  ProviderT findByName(String name) {
     return singleWhere((element) => element.name.lexeme == name);
   }
 }
 
-extension FindAst<Base extends AstNode> on List<Base> {
-  T findByName<T extends Base>(String name) {
+extension FindAst<NodeT extends AstNode> on List<NodeT> {
+  WhereNodeT findByName<WhereNodeT extends NodeT>(String name) {
     for (final node in this) {
       switch (node) {
         case TopLevelVariableDeclaration():
@@ -208,20 +208,20 @@ extension FindAst<Base extends AstNode> on List<Base> {
             (element) => element.name.lexeme == name,
           );
 
-          if (variableWithName != null) return variableWithName as T;
+          if (variableWithName != null) return variableWithName as WhereNodeT;
 
         case MethodDeclaration():
-          if (node.name.lexeme == name) return node as T;
+          if (node.name.lexeme == name) return node as WhereNodeT;
 
         case FieldDeclaration():
           final variableWithName = node.fields.variables.firstWhereOrNull(
             (element) => element.name.lexeme == name,
           );
 
-          if (variableWithName != null) return variableWithName as T;
+          if (variableWithName != null) return variableWithName as WhereNodeT;
 
         case NamedCompilationUnitMember():
-          if (node.name.lexeme == name) return node as T;
+          if (node.name.lexeme == name) return node as WhereNodeT;
 
         default:
           throw UnsupportedError('Unsupported node ${node.runtimeType}');

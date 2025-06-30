@@ -134,7 +134,12 @@ void main() {
 
           verifyOnly(
             listener,
-            listener(any, AsyncValue<int>.error(err, stack)),
+            listener(
+              any,
+              argThat(
+                isAsyncError<int>(err, stackTrace: stack, retrying: true),
+              ),
+            ),
           );
 
           err = Exception('bar');
@@ -146,7 +151,12 @@ void main() {
 
           verifyOnly(
             listener,
-            listener(any, AsyncValue<int>.error(err, stack)),
+            listener(
+              any,
+              argThat(
+                isAsyncError<int>(err, stackTrace: stack, retrying: true),
+              ),
+            ),
           );
         }),
       );
@@ -407,7 +417,9 @@ void main() {
           self.listenSelf(listener.call, onError: onError.call);
           Error.throwWithStackTrace(42, StackTrace.empty);
         });
-        final container = ProviderContainer.test();
+        final container = ProviderContainer.test(
+          retry: (_, __) => null,
+        );
 
         container.listen(provider, (previous, next) {});
 
@@ -467,7 +479,9 @@ void main() {
       final provider = factory.simpleTestProvider<int>(
         (ref, _) => Stream.error(0, StackTrace.empty),
       );
-      final container = ProviderContainer.test();
+      final container = ProviderContainer.test(
+        retry: (_, __) => null,
+      );
       final listener = Listener<AsyncValue<int>>();
 
       container.listen(provider, listener.call, fireImmediately: true);
@@ -495,7 +509,9 @@ void main() {
       final provider = factory.provider<int>(
         () => Error.throwWithStackTrace(0, StackTrace.empty),
       );
-      final container = ProviderContainer.test();
+      final container = ProviderContainer.test(
+        retry: (_, __) => null,
+      );
       final listener = Listener<AsyncValue<int>>();
 
       container.listen(provider, listener.call, fireImmediately: true);
@@ -518,7 +534,9 @@ void main() {
       final provider = factory.simpleTestProvider<int>(
         (ref, _) => Error.throwWithStackTrace(42, StackTrace.empty),
       );
-      final container = ProviderContainer.test();
+      final container = ProviderContainer.test(
+        retry: (_, __) => null,
+      );
       final listener = Listener<AsyncValue<int>>();
 
       container.listen(provider, listener.call, fireImmediately: true);
@@ -576,7 +594,9 @@ void main() {
     test(
         'stops listening to the previous future error when the provider rebuilds',
         () async {
-      final container = ProviderContainer.test();
+      final container = ProviderContainer.test(
+        retry: (_, __) => null,
+      );
       final dep = StateProvider((ref) => 0);
       final completers = {
         0: Completer<int>.sync(),
@@ -902,7 +922,9 @@ void main() {
       });
 
       test('can specify onError to handle error scenario', () async {
-        final container = ProviderContainer.test();
+        final container = ProviderContainer.test(
+          retry: (_, __) => null,
+        );
         final provider = factory.simpleTestProvider<int>(
           (ref, _) => Error.throwWithStackTrace(42, StackTrace.empty),
         );
@@ -960,7 +982,9 @@ void main() {
 
       test('executes immediately with current state if an error is available',
           () async {
-        final container = ProviderContainer.test();
+        final container = ProviderContainer.test(
+          retry: (_, __) => null,
+        );
         final provider = factory.simpleTestProvider<int>(
           (ref, _) => Error.throwWithStackTrace(42, StackTrace.empty),
         );
@@ -1085,12 +1109,12 @@ void main() {
   });
 
   group('modifiers', () {
-    void canBeAssignedToRefreshable<T>(
-      Refreshable<T> provider,
+    void canBeAssignedToRefreshable<StateT>(
+      Refreshable<StateT> provider,
     ) {}
 
-    void canBeAssignedToProviderListenable<T>(
-      ProviderListenable<T> provider,
+    void canBeAssignedToProviderListenable<StateT>(
+      ProviderListenable<StateT> provider,
     ) {}
 
     test('provider', () {
@@ -1196,14 +1220,15 @@ void main() {
 }
 
 @immutable
-class Equal<T> {
+class Equal<BoxedT> {
   // ignore: prefer_const_constructors_in_immutables
   Equal(this.value);
 
-  final T value;
+  final BoxedT value;
 
   @override
-  bool operator ==(Object other) => other is Equal<T> && other.value == value;
+  bool operator ==(Object other) =>
+      other is Equal<BoxedT> && other.value == value;
 
   @override
   int get hashCode => Object.hash(runtimeType, value);

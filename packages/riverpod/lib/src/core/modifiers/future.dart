@@ -157,10 +157,10 @@ base mixin $FutureModifier<ValueT> on $ProviderBaseImpl<AsyncValue<ValueT>>
   /// });
   /// ```
   /// {@endtemplate}
-  ProviderListenable<Future<Output>> selectAsync<Output>(
-    Output Function(ValueT data) selector,
+  ProviderListenable<Future<OutT>> selectAsync<OutT>(
+    OutT Function(ValueT data) selector,
   ) {
-    return _AsyncSelector<ValueT, Output>(
+    return _AsyncSelector<ValueT, OutT>(
       selector: selector,
       provider: this,
       future: _future,
@@ -178,8 +178,7 @@ mixin FutureModifierClassElement<
         $ClassProviderElement<NotifierT, AsyncValue<ValueT>, ValueT, CreatedT> {
   @override
   void handleError(Ref ref, Object error, StackTrace stackTrace) {
-    triggerRetry(error);
-    onError(AsyncError(error, stackTrace), seamless: !ref.isReload);
+    onError(triggerRetry(error, stackTrace), seamless: !ref.isReload);
   }
 }
 
